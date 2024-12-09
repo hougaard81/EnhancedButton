@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Ultimate GSAP-Enhanced 3D Button</title>
+  <title>GSAP-Enhanced 3D Button</title>
   <style>
     /* Basic Reset */
     * {
@@ -101,11 +101,13 @@
     /* Particle Effect Styles */
     .particle {
       position: absolute;
-      width: 6px;
-      height: 6px;
-      background: rgba(255, 255, 255, 0.8);
+      width: 4px; /* Slightly smaller base size */
+      height: 4px;
       border-radius: 50%;
       pointer-events: none;
+      mix-blend-mode: screen; /* Adds a nice blend effect */
+      filter: blur(0.5px); /* Subtle blur for a softer look */
+      /* We'll set background-color dynamically in JS */
     }
 
     /* Hidden Particle Container */
@@ -118,7 +120,6 @@
       pointer-events: none;
       overflow: hidden;
     }
-
     /* Accessibility Focus Styles */
     .advanced-button:focus {
       outline: none;
@@ -165,285 +166,306 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" integrity="sha512-7eHRwcbYkK4d9g/6tD/mhkf++eoTHwpNM9woBxtPUBWm67zeAfFC+HrdoE2GanKeocly/VxeLvIqwvCdk7qScg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
   <script>
-// Selecting Elements
-const button = document.getElementById('hardcoreButton');
-const rippleContainer = button.querySelector('.ripple-container');
-const particlesContainer = button.querySelector('.particles-container');
-const buttonText = document.getElementById('buttonText');
+    // Selecting Elements
+    const button = document.getElementById('hardcoreButton');
+    const rippleContainer = button.querySelector('.ripple-container');
+    const particlesContainer = button.querySelector('.particles-container');
+    const buttonText = document.getElementById('buttonText');
 
-// State for hover particles
-let isHovering = false;
-let hoverParticles = [];
-const maxHoverParticles = 15;
+    // Define colors globally so both functions can access them
+    const colors = ['#ff6b6b', '#f8e71c', '#7ed321'];
 
-// GSAP Timeline for Hover Animations
-const hoverTimeline = gsap.timeline({ paused: true, reversed: true });
+    // State for hover particles
+    let isHovering = false;
+    let hoverParticles = [];
+    const maxHoverParticles = 15;
 
-hoverTimeline.to(button, {
-  duration: 0.5,
-  boxShadow: "0 30px 60px rgba(0, 0, 0, 0.4)",
-  ease: "power2.out"
-}, 0);
+    // GSAP Timeline for Hover Animations
+    const hoverTimeline = gsap.timeline({ paused: true, reversed: true });
 
-hoverTimeline.to(button, {
-  duration: 5,
-  backgroundPosition: "100% 50%",
-  ease: "none",
-  repeat: -1,
-  yoyo: false
-}, 0);
+    hoverTimeline.to(button, {
+      duration: 0.5,
+      boxShadow: "0 30px 60px rgba(0, 0, 0, 0.4)",
+      ease: "power2.out"
+    }, 0);
 
-// Function to create hover particles
-function createHoverParticle(x, y) {
-  const particle = document.createElement('span');
-  particle.classList.add('hover-particle');
-  document.body.appendChild(particle);
-  
-  // Account for scroll position
-  const scrollX = window.pageXOffset || document.documentElement.scrollLeft;
-  const scrollY = window.pageYOffset || document.documentElement.scrollTop;
-  
-  const angle = Math.random() * Math.PI * 2;
-  const radius = Math.random() * 20;
-  const startX = (x + scrollX) + Math.cos(angle) * radius;
-  const startY = (y + scrollY) + Math.sin(angle) * radius;
-  
-  // Set initial position including scroll offset
-  particle.style.left = '0';
-  particle.style.top = '0';
-  particle.style.transform = `translate(${startX}px, ${startY}px)`;
+    hoverTimeline.to(button, {
+      duration: 5,
+      backgroundPosition: "100% 50%",
+      ease: "none",
+      repeat: -1,
+      yoyo: false
+    }, 0);
 
-  const timeline = gsap.timeline({
-    onComplete: () => {
-      particle.remove();
-      hoverParticles = hoverParticles.filter(p => p !== particle);
-    }
-  });
+    // Function to create hover particles
+    function createHoverParticle(x, y) {
+      const particle = document.createElement('span');
+      particle.classList.add('hover-particle');
+      
+      // Select a random color from the colors array
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      particle.style.backgroundColor = color; // Assign the color
+      
+      document.body.appendChild(particle);
+      
+      // Account for scroll position
+      const scrollX = window.pageXOffset || document.documentElement.scrollLeft;
+      const scrollY = window.pageYOffset || document.documentElement.scrollTop;
+      
+      const angle = Math.random() * Math.PI * 2;
+      const radius = Math.random() * 20;
+      const startX = (x + scrollX) + Math.cos(angle) * radius;
+      const startY = (y + scrollY) + Math.sin(angle) * radius;
+      
+      // Set initial position including scroll offset
+      particle.style.left = '0';
+      particle.style.top = '0';
+      particle.style.transform = `translate(${startX}px, ${startY}px)`;
 
-  timeline.fromTo(particle,
-    {
-      opacity: 1,
-      scale: 1,
-      x: startX,
-      y: startY
-    },
-    {
-      duration: 0.8,
-      opacity: 0,
-      scale: 0,
-      x: x + scrollX,
-      y: y + scrollY,
-      ease: "power2.in"
-    }
-  );
-
-  hoverParticles.push(particle);
-
-  if (hoverParticles.length > maxHoverParticles) {
-    const oldestParticle = hoverParticles.shift();
-    oldestParticle.remove();
-  }
-}
-
-// Mouse Move Event for 3D Tilt and Hover Particles using GSAP
-button.addEventListener('mousemove', (e) => {
-  const rect = button.getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  const y = e.clientY - rect.top;
-  const centerX = rect.width / 2;
-  const centerY = rect.height / 2;
-  const deltaX = (x - centerX) / centerX;
-  const deltaY = (y - centerY) / centerY;
-
-  const rotateX = deltaY * 25;
-  const rotateY = -deltaX * 15;
-
-  gsap.to(button, {
-    rotationX: rotateX,
-    rotationY: rotateY,
-    duration: 0.5,
-    ease: "power2.out"
-  });
-
-  // Create hover particles using page coordinates
-  if (isHovering && Math.random() > 0.5) {
-    createHoverParticle(e.clientX, e.clientY);
-  }
-});
-
-// Rest of the code remains the same...
-// Mouse Leave Event to Reset 3D Tilt using GSAP
-button.addEventListener('mouseleave', () => {
-  gsap.to(button, {
-    rotationX: 0,
-    rotationY: 0,
-    duration: 0.5,
-    ease: "power2.out"
-  });
-});
-
-// Hover Events to Control GSAP Timeline and Change Text
-button.addEventListener('mouseenter', () => {
-  isHovering = true;
-  hoverTimeline.play();
-  gsap.to(buttonText, { 
-    duration: 0.3, 
-    opacity: 0, 
-    y: -10, 
-    onComplete: () => {
-      buttonText.textContent = "I am Ready to Engage!";
-      gsap.to(buttonText, { 
-        duration: 0.3, 
-        opacity: 1, 
-        y: 0 
+      const timeline = gsap.timeline({
+        onComplete: () => {
+          particle.remove();
+          hoverParticles = hoverParticles.filter(p => p !== particle);
+        }
       });
-    }
-  });
-});
 
-button.addEventListener('mouseleave', () => {
-  isHovering = false;
-  hoverTimeline.pause(0).reverse();
-  
-  // Clean up hover particles
-  hoverParticles.forEach(particle => {
-    gsap.to(particle, {
-      opacity: 0,
-      duration: 0.3,
-      onComplete: () => particle.remove()
-    });
-  });
-  hoverParticles = [];
+      timeline.fromTo(particle,
+        {
+          opacity: 1,
+          scale: 1,
+          x: startX,
+          y: startY
+        },
+        {
+          duration: 0.8,
+          opacity: 0,
+          scale: 0,
+          x: x + scrollX,
+          y: y + scrollY,
+          ease: "power2.in"
+        }
+      );
 
-  gsap.to(buttonText, { 
-    duration: 0.3, 
-    opacity: 0, 
-    y: 10, 
-    onComplete: () => {
-      buttonText.textContent = "Engage me for Effect";
-      gsap.to(buttonText, { 
-        duration: 0.3, 
-        opacity: 1, 
-        y: 0 
-      });
-    }
-  });
-});
+      hoverParticles.push(particle);
 
-// Function to Create Ripple Effect using GSAP
-function createRipple(e) {
-  const ripple = document.createElement('span');
-  const rect = button.getBoundingClientRect();
-  const size = Math.max(rect.width, rect.height) * 2;
-  ripple.style.width = ripple.style.height = `${size}px`;
-  ripple.style.left = `${e.clientX - rect.left - size / 2}px`;
-  ripple.style.top = `${e.clientY - rect.top - size / 2}px`;
-  ripple.classList.add('ripple');
-  rippleContainer.appendChild(ripple);
-
-  gsap.fromTo(ripple, {
-    scale: 0,
-    opacity: 0.4
-  }, {
-    scale: 4,
-    opacity: 0,
-    duration: 1,
-    ease: "power2.out",
-    onComplete: () => {
-      ripple.remove();
-    }
-  });
-}
-
-// Function to Create Click Particle Effect using GSAP
-function createParticles(e) {
-  const particleCount = 25;
-  for (let i = 0; i < particleCount; i++) {
-    const particle = document.createElement('span');
-    particle.classList.add('particle');
-    const angle = Math.random() * 2 * Math.PI;
-    const radius = Math.random() * 80;
-    const tx = radius * Math.cos(angle);
-    const ty = radius * Math.sin(angle);
-    particle.style.left = `${e.clientX - button.getBoundingClientRect().left}px`;
-    particle.style.top = `${e.clientY - button.getBoundingClientRect().top}px`;
-    particlesContainer.appendChild(particle);
-
-    gsap.to(particle, {
-      x: tx,
-      y: ty,
-      opacity: 0,
-      scale: 0,
-      duration: 0.6,
-      ease: "power2.out",
-      onComplete: () => {
-        particle.remove();
+      if (hoverParticles.length > maxHoverParticles) {
+        const oldestParticle = hoverParticles.shift();
+        oldestParticle.remove();
       }
-    });
-  }
-}
+    }
 
-// Function to Trigger Active Press Effect using GSAP
-function triggerActiveEffect() {
-  gsap.to(button, {
-    scale: 0.95,
-    translateZ: 20,
-    duration: 0.1,
-    ease: "power2.out",
-    onComplete: () => {
+    // Mouse Move Event for 3D Tilt and Hover Particles using GSAP
+    button.addEventListener('mousemove', (e) => {
+      const rect = button.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const centerX = rect.width / 2;
+      const centerY = rect.height / 2;
+      const deltaX = (x - centerX) / centerX;
+      const deltaY = (y - centerY) / centerY;
+
+      const rotateX = deltaY * 25;
+      const rotateY = -deltaX * 15;
+
       gsap.to(button, {
-        scale: 1,
-        translateZ: 0,
-        duration: 0.1,
+        rotationX: rotateX,
+        rotationY: rotateY,
+        duration: 0.5,
         ease: "power2.out"
       });
-    }
-  });
-}
 
-// Click Event Handler
-button.addEventListener('click', (e) => {
-  createRipple(e);
-  createParticles(e);
-  triggerActiveEffect();
-  gsap.to(buttonText, { 
-    duration: 0.3, 
-    opacity: 0, 
-    y: -10, 
-    onComplete: () => {
-      buttonText.textContent = "I have just been Engaged!";
-      gsap.to(buttonText, { 
-        duration: 0.3, 
-        opacity: 1, 
-        y: 0 
-      });
-    }
-  });
-
-  setTimeout(() => {
-    gsap.to(buttonText, { 
-      duration: 0.3, 
-      opacity: 0, 
-      y: 10, 
-      onComplete: () => {
-        buttonText.textContent = "Engage me for Effect";
-        gsap.to(buttonText, { 
-          duration: 0.3, 
-          opacity: 1, 
-          y: 0 
-        });
+      // Create hover particles using page coordinates
+      if (isHovering && Math.random() > 0.5) {
+        createHoverParticle(e.clientX, e.clientY);
       }
     });
-  }, 1500);
-});
 
-// Accessibility: Keyboard Interaction
-button.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' || e.key === ' ') {
-    e.preventDefault();
-    button.click();
-  }
-});
+    // Rest of the code remains the same...
+    // Mouse Leave Event to Reset 3D Tilt using GSAP
+    button.addEventListener('mouseleave', () => {
+      gsap.to(button, {
+        rotationX: 0,
+        rotationY: 0,
+        duration: 0.5,
+        ease: "power2.out"
+      });
+    });
+
+    // Hover Events to Control GSAP Timeline and Change Text
+    button.addEventListener('mouseenter', () => {
+      isHovering = true;
+      hoverTimeline.play();
+      gsap.to(buttonText, { 
+        duration: 0.3, 
+        opacity: 0, 
+        y: -10, 
+        onComplete: () => {
+          buttonText.textContent = "I am Ready to Engage!";
+          gsap.to(buttonText, { 
+            duration: 0.3, 
+            opacity: 1, 
+            y: 0 
+          });
+        }
+      });
+    });
+
+    button.addEventListener('mouseleave', () => {
+      isHovering = false;
+      hoverTimeline.pause(0).reverse();
+      
+      // Clean up hover particles
+      hoverParticles.forEach(particle => {
+        gsap.to(particle, {
+          opacity: 0,
+          duration: 0.3,
+          onComplete: () => particle.remove()
+        });
+      });
+      hoverParticles = [];
+
+      gsap.to(buttonText, { 
+        duration: 0.3, 
+        opacity: 0, 
+        y: 10, 
+        onComplete: () => {
+          buttonText.textContent = "Engage me for Effect";
+          gsap.to(buttonText, { 
+            duration: 0.3, 
+            opacity: 1, 
+            y: 0 
+          });
+        }
+      });
+    });
+
+    // Function to Create Ripple Effect using GSAP
+    function createRipple(e) {
+      const ripple = document.createElement('span');
+      const rect = button.getBoundingClientRect();
+      const size = Math.max(rect.width, rect.height) * 2;
+      ripple.style.width = ripple.style.height = `${size}px`;
+      ripple.style.left = `${e.clientX - rect.left - size / 2}px`;
+      ripple.style.top = `${e.clientY - rect.top - size / 2}px`;
+      ripple.classList.add('ripple');
+      rippleContainer.appendChild(ripple);
+
+      gsap.fromTo(ripple, {
+        scale: 0,
+        opacity: 0.4
+      }, {
+        scale: 4,
+        opacity: 0,
+        duration: 1,
+        ease: "power2.out",
+        onComplete: () => {
+          ripple.remove();
+        }
+      });
+    }
+
+    // Function to Create Click Particle Effect using GSAP
+    function createParticles(e) {
+      const particleCount = 25;
+      
+      for (let i = 0; i < particleCount; i++) {
+        const particle = document.createElement('span');
+        particle.classList.add('particle');
+        
+        // Randomly select a color from the colors array
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        // Random size between 2px and 6px
+        const size = 2 + Math.random() * 4;
+        
+        particle.style.backgroundColor = color;
+        particle.style.width = `${size}px`;
+        particle.style.height = `${size}px`;
+        
+        const angle = Math.random() * 2 * Math.PI;
+        const radius = Math.random() * 80;
+        const tx = radius * Math.cos(angle);
+        const ty = radius * Math.sin(angle);
+        
+        particle.style.left = `${e.clientX - button.getBoundingClientRect().left}px`;
+        particle.style.top = `${e.clientY - button.getBoundingClientRect().top}px`;
+        particlesContainer.appendChild(particle);
+
+        gsap.to(particle, {
+          x: tx,
+          y: ty,
+          opacity: 0,
+          scale: 0,
+          duration: 0.6 + Math.random() * 0.4, // Slightly randomized duration
+          ease: "power2.out",
+          onComplete: () => {
+            particle.remove();
+          }
+        });
+      }
+    }
+
+    // Function to Trigger Active Press Effect using GSAP
+    function triggerActiveEffect() {
+      gsap.to(button, {
+        scale: 0.95,
+        translateZ: 20,
+        duration: 0.1,
+        ease: "power2.out",
+        onComplete: () => {
+          gsap.to(button, {
+            scale: 1,
+            translateZ: 0,
+            duration: 0.1,
+            ease: "power2.out"
+          });
+        }
+      });
+    }
+
+    // Click Event Handler
+    button.addEventListener('click', (e) => {
+      createRipple(e);
+      createParticles(e);
+      triggerActiveEffect();
+      gsap.to(buttonText, { 
+        duration: 0.3, 
+        opacity: 0, 
+        y: -10, 
+        onComplete: () => {
+          buttonText.textContent = "I have just been Engaged!";
+          gsap.to(buttonText, { 
+            duration: 0.3, 
+            opacity: 1, 
+            y: 0 
+          });
+        }
+      });
+
+      setTimeout(() => {
+        gsap.to(buttonText, { 
+          duration: 0.3, 
+          opacity: 0, 
+          y: 10, 
+          onComplete: () => {
+            buttonText.textContent = "Engage me for Effect";
+            gsap.to(buttonText, { 
+              duration: 0.3, 
+              opacity: 1, 
+              y: 0 
+            });
+          }
+        });
+      }, 1500);
+    });
+
+    // Accessibility: Keyboard Interaction
+    button.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        button.click();
+      }
+    });
+
   </script>
 
 </body>
